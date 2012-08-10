@@ -132,9 +132,9 @@ module.exports = (model, options) ->
             callback? error, v
 
     removeListener: (docName) ->
-      throw new Error 'Document is not open' unless @listeners[docName]
-      model.removeListener docName, @listeners[docName]
-      delete @listeners[docName]
+      if @listeners[docName]
+        model.removeListener docName, @listeners[docName]
+        delete @listeners[docName]
 
   # Finally, return a function which takes client data and returns an authenticated useragent object
   # through a callback.
