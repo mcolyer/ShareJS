@@ -26,9 +26,6 @@ hat = require 'hat'
 
 syncQueue = require './syncqueue'
 
-# Time (in ms) that the server will wait for an auth message from the client before closing the connection
-AUTH_TIMEOUT = 10000
-
 # session should implement the following interface:
 #   headers
 #   address
@@ -55,7 +52,6 @@ exports.handler = (session, createAgent) ->
 
     # Map from docName -> {queue, listener if open}
     docState = {}
-
 
     # We'll only handle one message from each client at a time.
     handleMessage = (query) ->
@@ -305,42 +301,26 @@ exports.handler = (session, createAgent) ->
         send msg
         callback()
 
-    # Authentication process has failed, send error and stop session
-    failAuthentication = (error) ->
-      session.send {
-        auth: null, 
-        error: error
-      }
-      session.stop()
-
-    # Wait for client to send an auth message, but don't wait forever
-    timeout = setTimeout () ->
-      failAuthentication('Timeout waiting for client auth message')
-    , AUTH_TIMEOUT
-
     # We don't process any messages from the agent until they've authorized. Instead,
     # they are stored in this buffer.
     buffer = []
-    session.on 'message', bufferMsg = (msg) -> 
-      if typeof msg.auth != 'undefined'
-        clearTimeout timeout
-        data.authentication = msg.auth
-        createAgent data, (error, agent_) ->
-          if error
-            # The client is not authorized, so they shouldn't try and reconnect.
-            failAuthentication(error)
-          else
-            agent = agent_
-            session.send auth:agent.sessionId
+    session.on 'message', bufferMsg = (msg) -> buffer.push msg
 
-          # Ok. Now we can handle all the messages in the buffer. They'll go straight to
-          # handleMessage from now on.
-            session.removeListener 'message', bufferMsg
-            handleMessage msg for msg in buffer
-            buffer = null
-            session.on 'message', handleMessage
+    createAgent data, (error, agent_) ->
+      if error
+        # The client is not authorized, so they shouldn't try and reconnect.
+        session.send {auth:null, error}
+        session.stop()
       else
-        buffer.push msg
+        agent = agent_
+        session.send auth:agent.sessionId
+
+      # Ok. Now we can handle all the messages in the buffer. They'll go straight to
+      # handleMessage from now on.
+        session.removeListener 'message', bufferMsg
+        handleMessage msg for msg in buffer
+        buffer = null
+        session.on 'message', handleMessage
 
     session.on 'close', ->
       return unless agent
