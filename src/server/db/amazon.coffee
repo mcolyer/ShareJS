@@ -752,11 +752,12 @@ module.exports = AmazonDb = (options) ->
       if error?
         console.error('Failed to save Operation('+docName+'-'+opData.v+'): '+util.inspect(error))
 
+        data = util.inspect(opData)
         params =
           BucketName: snapshots_bucket
           ObjectName: 'last-failed-op'
-          ContentLength: results.compress_op.length
-          Body: results.compress_op
+          ContentLength: data.length
+          Body: data
 
         cb = ->
           callback?('Failure')
