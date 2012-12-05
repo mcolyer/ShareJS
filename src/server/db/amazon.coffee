@@ -751,7 +751,19 @@ module.exports = AmazonDb = (options) ->
     (error, results) ->
       if error?
         console.error('Failed to save Operation('+docName+'-'+opData.v+'): '+util.inspect(error))
-        callback?('Failure')
+
+        params =
+          BucketName: snapshots_bucket
+          ObjectName: 'last-failed-op'
+          ContentLength: results.compress_op.length
+          Body: results.compress_op
+
+        cb = ->
+          callback?('Failure')
+
+        s3_rw_queue.push((c) ->
+          s3.PutObject(params, c)
+        , 'write Failed Operation to S3(last-failed-op)', cb)
       else
         callback?()
     )
