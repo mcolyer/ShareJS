@@ -571,10 +571,10 @@ module.exports = Model = (db, options) ->
   @removeListener = (docName, listener) ->
     # The document should already be loaded.
     doc = docs[docName]
-    throw new Error 'removeListener called but document not loaded' unless doc
 
-    doc.eventEmitter.removeListener 'op', listener
-    refreshReapingTimeout docName
+    if doc
+      doc.eventEmitter.removeListener 'op', listener
+      refreshReapingTimeout docName
 
   # Flush saves all snapshot data to the database. I'm not sure whether or not this is actually needed -
   # sharejs will happily replay uncommitted ops when documents are re-opened anyway.
