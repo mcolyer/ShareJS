@@ -752,7 +752,7 @@ module.exports = AmazonDb = (options) ->
       if error?
         console.error('Failed to save Operation('+docName+'-'+opData.v+'): '+util.inspect(error))
 
-        data = util.inspect(opData)
+        data = JSON.stringify(opData)
         params =
           BucketName: snapshots_bucket
           ObjectName: 'last-failed-op'
